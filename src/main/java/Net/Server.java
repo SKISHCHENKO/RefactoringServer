@@ -15,10 +15,15 @@ import java.util.concurrent.Executors;
 
 public class Server {
     final static List<String> validPaths = List.of("/index.html", "/spring.svg", "/spring.png", "/resources.html", "/styles.css", "/app.js", "/links.html", "/forms.html", "/classic.html", "/events.html", "/events.js");
+    private final int PORT;
 
-    public static void start() {
+    public Server(int PORT) {
+        this.PORT = PORT;
+    }
+
+    public void start() {
         ExecutorService threadPool = Executors.newFixedThreadPool(64);
-        try (final var serverSocket = new ServerSocket(9999)) {
+        try (final var serverSocket = new ServerSocket(PORT)) {
             while (true) {
                 try {
                     final var socket = serverSocket.accept();
@@ -32,7 +37,7 @@ public class Server {
         }
     }
 
-    private static void handleRequest(Socket socket, List<String> validPaths) {
+    private  void handleRequest(Socket socket, List<String> validPaths) {
         try (
                 final var in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 final var out = new BufferedOutputStream(socket.getOutputStream());

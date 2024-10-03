@@ -3,7 +3,8 @@ package Net;
 
 public class Main {
     public static void main(String[] args) {
-      Server.start();
+        final var server = new Server(9999);
+        server.start();
 
     }
 }
