@@ -14,16 +14,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class Server {
+    final private ExecutorService threadPool;
     final static List<String> validPaths = List.of("/index.html", "/spring.svg", "/spring.png", "/resources.html", "/styles.css", "/app.js", "/links.html", "/forms.html", "/classic.html", "/events.html", "/events.js");
-    private final int PORT;
 
-    public Server(int PORT) {
-        this.PORT = PORT;
+    public Server(int number) {
+        threadPool = Executors.newFixedThreadPool(number);;
     }
 
-    public void start() {
-        ExecutorService threadPool = Executors.newFixedThreadPool(64);
-        try (final var serverSocket = new ServerSocket(PORT)) {
+    public void listen(int port) {
+        try (final var serverSocket = new ServerSocket(port)) {
             while (true) {
                 try {
                     final var socket = serverSocket.accept();
