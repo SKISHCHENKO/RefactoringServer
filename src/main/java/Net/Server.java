@@ -41,7 +41,7 @@ public class Server {
             if (requestLine == null) {
                 return;
             }
-            System.out.println(requestLine);
+            System.out.println("request: "+requestLine);
             final var parts = requestLine.split(" ");
 
 
@@ -53,8 +53,6 @@ public class Server {
             final var path = parts[1];
 
             if (!validPaths.contains(path)) {
-                System.out.println("404 Not Found");
-                System.out.println("Проверка пути: " + path);
                 sendErrorResponse(out, "404 Not Found");
                 return;
             }
@@ -107,7 +105,6 @@ public class Server {
     }
 
     private static void sendErrorResponse(BufferedOutputStream out, String status) throws IOException {
-        System.out.println("Отправка ответа");
         String notFoundMessage = "<html><body><h1>Файл не найден</h1></body></html>";
         byte[] notFoundContent = notFoundMessage.getBytes("UTF-8");
         out.write((
