@@ -12,7 +12,9 @@ public class Request {
     final static String GET = "GET";
     final static String POST = "POST";
     final List<String> allowedMethods = List.of(GET, POST);
-    List<NameValuePair> params = null;
+    private List<NameValuePair> queryParams;  // Параметры GET-запроса
+    private List<NameValuePair> postParams;   // Параметры POST-запроса
+
 
     private String query;
 
@@ -39,6 +41,7 @@ public class Request {
         this.path = uri.getPath();
         this.header = header;
         this.version = version;
+        this.queryParams = URLEncodedUtils.parse(uri, StandardCharsets.UTF_8);
     }
 
     public Request(String header) {
@@ -109,9 +112,9 @@ public class Request {
             String path = uri.getPath();
             System.out.println("Path: " + path);
             // Извлечение параметров из строки запроса
-            params = URLEncodedUtils.parse(uri, StandardCharsets.UTF_8);
+            queryParams = URLEncodedUtils.parse(uri, StandardCharsets.UTF_8);
             str.append("String query :").append("<br>"); // <br> - перевод строки в html
-            for (NameValuePair param : params) {
+            for (NameValuePair param : queryParams) {
                 System.out.println(param.getName() + " = " + param.getValue());
                 str.append(param.getName() + " = " + param.getValue()).append("<br>");
             }
@@ -129,18 +132,54 @@ public class Request {
         String path = uri.getPath();
         System.out.println("Path: " + path);
         // Извлечение параметров из строки запроса
-        params = URLEncodedUtils.parse(uri, StandardCharsets.UTF_8);
+            queryParams = URLEncodedUtils.parse(uri, StandardCharsets.UTF_8);
         } catch (URISyntaxException e) {
             e.printStackTrace();
         }
-        if (params == null || params.isEmpty()) {
+        if (queryParams == null || queryParams.isEmpty()) {
             return "String Query is Empty!";
         }
-        for (NameValuePair param : params) {
+        for (NameValuePair param : queryParams) {
             if (param.getName().equals(name)) {
                 return param.getName() + " = " + param.getValue();
             }
         }
         return "String Query not contain : " + name;
+    }
+
+    // Метод для обработки тела POST-запроса
+    public void parsePostParams(String body) {
+        try {
+            // Парсинг тела POST-запроса
+            URI uri = new URI("http://localhost?" + body);  // Создаем URI для парсинга POST-параметров
+            this.postParams = URLEncodedUtils.parse(uri, StandardCharsets.UTF_8);
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Метод для получения всех POST-параметров
+    public String getPostParams() {
+        StringBuilder str = new StringBuilder();
+        if (postParams == null || postParams.isEmpty()) {
+            return "Post params are empty";
+        }
+        for (NameValuePair param : postParams) {
+            str.append(param.getName() + " = " + param.getValue()).append("<br>");
+        }
+        return str.toString();
+    }
+
+    // Метод для получения одного POST-параметра по имени
+    public String getPostParam(String name) {
+        if (postParams == null || postParams.isEmpty()) {
+            return "Post params are empty";
+        }
+        for (NameValuePair param : postParams) {
+            if (param.getName().equals(name)) {
+                return param.getName() + " = " + param.getValue();
+            }
+        }
+        return "Post params do not contain: " + name;
     }
 }

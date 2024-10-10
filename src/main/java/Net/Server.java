@@ -3,6 +3,7 @@ package Net;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -91,10 +92,44 @@ public class Server {
                 handler.handle(request, out);
                 return;
             }
-            if (query.length()<2) {
+            // Если запрос GET и параметры отсутствуют
+            if (query.length() < 2 && method.equals(GET)) {
                 request.setContent("<html><body><h1>String query is empty!</h1></body></html>");
                 sendResponse(out, request);
                 return;
+            }
+            // Обработка POST-запроса
+            if (method.equals(POST)) {
+                // Определяем конец заголовков
+                final var headersEnd = indexOf(buffer, new byte[]{'\r', '\n', '\r', '\n'}, requestLineEnd, read);
+                if (headersEnd == -1) {
+                    sendResponse(out, new Request("400 Bad Request"));
+                    return;
+                }
+
+                // Чтение тела POST-запроса
+                final var contentLengthHeader = "Content-Length: ";
+                String headers = new String(Arrays.copyOfRange(buffer, requestLineEnd + 2, headersEnd));
+                int contentLength = 0;
+                if (headers.contains(contentLengthHeader)) {
+                    int contentLengthIndex = headers.indexOf(contentLengthHeader) + contentLengthHeader.length();
+                    int contentLengthEnd = headers.indexOf('\r', contentLengthIndex);
+                    contentLength = Integer.parseInt(headers.substring(contentLengthIndex, contentLengthEnd));
+                }
+
+                if (contentLength > 0) {
+                    byte[] body = new byte[contentLength];
+                    in.read(body);
+
+                    // Парсинг тела запроса
+                    String postBody = new String(body, StandardCharsets.UTF_8);
+                    request.parsePostParams(postBody);
+
+                    // Ответ с POST параметрами
+                    request.setContent("<html><body><h2>" + request.getPostParams() + "</h2></body></html>");
+                    sendResponse(out, request);
+                    return;
+                }
             }
 
             // Обработка статических файлов
