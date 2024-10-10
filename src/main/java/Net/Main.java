@@ -13,21 +13,28 @@ public class Main {
 
         // добавление хендлеров (обработчиков)
         server.addHandler(GET, "/messages", (request, out) -> {
-            String responseMessage = "New Handler: Method: GET, Path: /messages";
+            String responseMessage = "<html><body><h1> New Handler: <br>" +
+                    "Method: GET <br>" +
+                    "Path: /messages <br>" +
+                    "String query: <br>"+ request.getQuery() + "<br>" +
+                    "Search login in query: "+ request.getQueryParam("login")+"</h1></body></html>";
 
-            Request response = new Request(GET, "/messages", "200 OK", "text/plain", responseMessage.getBytes().length, responseMessage, request.getVersion());
-
+            Request response = new Request(GET, "/messages", "200 OK", request.getVersion());
+            response.setContent(responseMessage);
             out.write(response.createRequest().getBytes());
             out.write(responseMessage.getBytes(StandardCharsets.UTF_8));
             out.flush();
         });
 
         server.addHandler(GET, "/error", (request, out) -> {
-            String responseMessage = "New Handler: Method: GET, Path: /error" + "\r\n" +
-                    "Message: ERROR";
+            String responseMessage = "<html><body><h1>New Handler: <br>" +
+                    "Method: GET <br>" +
+                    "Path: /messages <br>" +
+                    "String query: "+ request.getQuery() + "<br>" +
+                    "Message: ERROR</h1></body></html>";
 
-            Request response = new Request(GET, "/messages", "200 OK", "text/plain", responseMessage.getBytes().length, responseMessage, request.getVersion());
-
+            Request response = new Request(GET, "/error", "200 OK", request.getVersion());
+            response.setContent(responseMessage);
             out.write(response.createRequest().getBytes());
             out.write(responseMessage.getBytes(StandardCharsets.UTF_8));
             out.flush();
@@ -35,10 +42,13 @@ public class Main {
 
 
         server.addHandler(POST, "/messages", (Handler) (request, out) -> {
-            String responseMessage = "New Handler: Method: POST, Path: /messages";
+            String responseMessage = "<html><body><h1> New Handler: <br>" +
+                    "Method: POST <br>" +
+                    "Path: /messages <br>" +
+                    "String query: "+ request.getQuery() + "</h1></body></html>";
 
-            Request response = new Request(POST, "/messages", "200 OK", "text/plain", responseMessage.getBytes().length, responseMessage, request.getVersion());
-
+            Request response = new Request(POST, "/messages", "200 OK", request.getVersion());
+            response.setContent(responseMessage);
             out.write(response.createRequest().getBytes());
             out.write(responseMessage.getBytes(StandardCharsets.UTF_8));
             out.flush();
