@@ -1,7 +1,10 @@
 package Net;
 
 import org.apache.hc.core5.http.NameValuePair;
-import java.util.*;
+
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 public class Request {
     private final List<NameValuePair> queryParams;  // Параметры GET-запроса
