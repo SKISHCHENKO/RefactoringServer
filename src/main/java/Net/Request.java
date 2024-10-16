@@ -70,4 +70,33 @@ public class Request {
     public String getMethod() {
         return method;
     }
+    @Override
+    public String toString() {
+        return "Request{" +
+                "method='" + method + '\'' +
+                ", path='" + path + '\'' +
+                ", version='" + version + '\'' +
+                ", headers=" + headers +
+                ", queryParams=" + queryParams +
+                ", postParams=" + postParams +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Request request = (Request) o;
+        return Objects.equals(method, request.method) &&
+                Objects.equals(path, request.path) &&
+                Objects.equals(version, request.version) &&
+                Objects.equals(headers, request.headers) &&
+                Objects.equals(queryParams, request.queryParams) &&
+                Objects.equals(postParams, request.postParams);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(method, path, version, headers, queryParams, postParams);
+    }
 }

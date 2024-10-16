@@ -68,7 +68,11 @@ public class RequestParser {
 
             if (contentLength > 0) {
                 body = new byte[contentLength];
-                in.read(body);
+                int bytesRead = in.read(body);
+                if (bytesRead != contentLength) {
+                    System.out.println("Ошибка: Прочитано меньше данных, чем указано в Content-Length.");
+                    return null;
+                }
             }
         }
 
@@ -86,7 +90,6 @@ public class RequestParser {
 
         var optionalContentType = extractHeader(headers, "Content-Type");
         if (optionalContentType.isPresent() && optionalContentType.get().equals("application/x-www-form-urlencoded")) {
-            // убрать под if для Content-Type: application/x-www-form-urlencoded
             URI uriFromBody = null;
             try {
                 uriFromBody = new URI(new String(body));
@@ -102,8 +105,6 @@ public class RequestParser {
 
         return new Request(method, uri.getPath(), version, headers, body, queryParams, postParams);
     }
-
-
 
     private static int indexOf(byte[] array, byte[] target, int start, int max) {
         outer:
