@@ -1,9 +1,10 @@
 package Net;
 
-import org.apache.hc.core5.http.NameValuePair;
+import org.apache.commons.fileupload.FileItem;
 import org.apache.hc.core5.net.URLEncodedUtils;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -14,22 +15,19 @@ import java.util.List;
 import java.util.Optional;
 
 public class RequestParser {
-    public final static String GET = "GET";
-    public final static String POST = "POST";
 
-
-
-    private static final String contentLengthHeaderName = "Content-Length";
+    private static final String CONTENT_TYPE_HEADER = "Content-Type";
+    private static final String CONTENT_LENGTH_HEADER = "Content-Length";
 
     public static Request parse(BufferedInputStream in) throws IOException {
-        // лимит на request line + заголовки
+        // Лимит на request line + заголовки
         final var limit = 4096;
 
         in.mark(limit);
         final var buffer = new byte[limit];
         final var read = in.read(buffer);
 
-        // ищем request line
+        // Ищем request line
         final var requestLineDelimiter = new byte[]{'\r', '\n'};
         final var requestLineEnd = indexOf(buffer, requestLineDelimiter, 0, read);
 
@@ -47,63 +45,49 @@ public class RequestParser {
         final var version = requestLine[2];
         byte[] body = null;
 
-        System.out.println("method = " + method);
-        System.out.println("query = " + query);
-        System.out.println("version = " + version);
-
+        // Получаем заголовки
         final var headersEnd = indexOf(buffer, new byte[]{'\r', '\n', '\r', '\n'}, requestLineEnd, read);
         if (headersEnd == -1) {
             return null;
         }
 
-        final var headers = Arrays.asList(new String(Arrays.copyOfRange(buffer, requestLineEnd + 2, headersEnd)).split("\r\n"));
+        var headers = Arrays.asList(new String(Arrays.copyOfRange(buffer, requestLineEnd + 2, headersEnd)).split("\r\n"));
+
+        String contentType = null;
+        int contentLength = 0;
+
+        // Получаем Content-Type и Content-Length
+        for (String header : headers) {
+            if (header.startsWith(CONTENT_TYPE_HEADER)) {
+                contentType = header.substring(header.indexOf(":") + 1).trim();
+            } else if (header.startsWith(CONTENT_LENGTH_HEADER)) {
+                contentLength = Integer.parseInt(header.substring(header.indexOf(":") + 1).trim());
+            }
+        }
 
         // Обработка POST-запроса
-        if (method.equals(POST)) {
-            int contentLength = 0;
-            var optionalContentLength = extractHeader(headers, contentLengthHeaderName);
-            if (optionalContentLength.isPresent()) {
-                contentLength = Integer.parseInt(optionalContentLength.get());
-            }
-
-            if (contentLength > 0) {
-                body = new byte[contentLength];
-                int bytesRead = in.read(body);
-                if (bytesRead != contentLength) {
-                    System.out.println("Ошибка: Прочитано меньше данных, чем указано в Content-Length.");
-                    return null;
-                }
-            }
+        if ("POST".equalsIgnoreCase(method) && contentLength > 0) {
+            body = new byte[contentLength];
+            in.read(body);
         }
 
         URI uri;
         try {
             uri = new URI(query);
         } catch (URISyntaxException e) {
-            System.out.println("Ошибка URI" + e.getMessage());
+            System.out.println("Ошибка URI: " + e.getMessage());
             return null;
         }
 
         var queryParams = URLEncodedUtils.parse(uri, StandardCharsets.UTF_8);
+        List<FileItem> fileItems = new ArrayList<>();
 
-        List<NameValuePair> postParams = new ArrayList<>();
-
-        var optionalContentType = extractHeader(headers, "Content-Type");
-        if (optionalContentType.isPresent() && optionalContentType.get().equals("application/x-www-form-urlencoded")) {
-            URI uriFromBody = null;
-            try {
-                uriFromBody = new URI(new String(body));
-            } catch (URISyntaxException e) {
-                System.out.println("Ошибка парсинга тела запроса: " + e.getMessage());
-            }
-            if (uriFromBody != null) {
-                postParams = URLEncodedUtils.parse(uriFromBody, StandardCharsets.UTF_8);
-            } else {
-                System.out.println("Ошибка: uriFromBody оказался null.");
-            }
+        // Если это multipart-запрос, парсим его
+        if (isMultipartContent(contentType)) {
+            fileItems = MultipartParser.parse(new ByteArrayInputStream(body), contentType, contentLength);
         }
 
-        return new Request(method, uri.getPath(), version, headers, body, queryParams, postParams);
+        return new Request(method, uri.getPath(), version, headers, body, queryParams, fileItems);
     }
 
     private static int indexOf(byte[] array, byte[] target, int start, int max) {
@@ -119,6 +103,9 @@ public class RequestParser {
         return -1;
     }
 
+    public static boolean isMultipartContent(String contentType) {
+        return contentType != null && contentType.startsWith("multipart/");
+    }
     public static Optional<String> extractHeader(List<String> headers, String header) {
         return headers.stream()
                 .filter(o -> o.startsWith(header))

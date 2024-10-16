@@ -1,8 +1,12 @@
 package Net;
 
+import org.apache.commons.fileupload.FileItem;
+import org.apache.hc.core5.http.NameValuePair;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URISyntaxException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -32,8 +36,6 @@ public class Server {
             LOGGER.log(Level.SEVERE, "Failed to set up file handler for logger", e);
         }
     }
-    //public static final String GET = "GET";
-    //public static final String POST = "POST";
     private static final Set<HttpMethod> allowedMethods = EnumSet.of(HttpMethod.GET, HttpMethod.POST);
 
     private final int port;
@@ -98,11 +100,28 @@ public class Server {
             } else {
                 Response.methodNotAllowed(out);
             }
+
+            // Обработка параметров и файлов после вызова обработчика
+            List<NameValuePair> queryParams = request.getQueryParams(); // Параметры GET-запроса
+            List<NameValuePair> postParams = request.getPostParams(); // Параметры POST-запроса
+            List<FileItem> fileItems = request.getFileItems(); // Загруженные файлы
+
+            // Обработка параметров и файлов
+            for (FileItem fileItem : fileItems) {
+                if (fileItem.isFormField()) {
+                    // Это обычное поле
+                    String fieldValue = fileItem.getString();
+                    // Обработайте значение поля (например, сохраните в Map, передайте в обработчик и т. д.)
+                } else {
+                    // Это файл
+                    String fileName = fileItem.getName();
+                    // Сохраните файл или выполните другую обработку (например, сохраните на диск)
+                }
+            }
         } catch (IOException e) {
-            LOGGER.log(Level.SEVERE, "IO Exception BufferedInputStream and BufferedOutputStream", e);
+            e.printStackTrace();
         }
     }
-
     public void addHandler(String method, String path, Handler handler) {
         handlers.computeIfAbsent(method, k -> new ConcurrentHashMap<>()).put(path, handler);
     }

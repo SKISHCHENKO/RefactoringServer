@@ -2,13 +2,16 @@ package Net;
 
 import org.apache.hc.core5.http.NameValuePair;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import org.apache.commons.fileupload.FileItem;
 
 public class Request {
     private final List<NameValuePair> queryParams;  // Параметры GET-запроса
     private final List<NameValuePair> postParams;   // Параметры POST-запроса
+    private final List<FileItem> fileItems;         // Загруженные файлы
 
     private final String method;
     private final String path;
@@ -16,20 +19,21 @@ public class Request {
     private final String version;
     private final List<String> headers;
 
-    public Request(String method, String path, String version, List<String> headers, byte[] body, List<NameValuePair> queryParams, List<NameValuePair> postParams) {
+    public Request(String method, String path, String version, List<String> headers, byte[] body,
+                   List<NameValuePair> queryParams, List<FileItem> fileItems) {
         this.method = method;
         this.path = path;
         this.headers = headers;
         this.version = version;
         this.body = body;
         this.queryParams = queryParams;
-        this.postParams = postParams;
+        this.fileItems = fileItems;
+        this.postParams = new ArrayList<>(); // Инициализация postParams, если нужно
     }
 
     public String getPath() {
         return path;
     }
-
 
     public String getVersion() {
         return version;
@@ -43,6 +47,14 @@ public class Request {
         return queryParams;
     }
 
+    public List<NameValuePair> getPostParams() {
+        return postParams;
+    }
+
+    public List<FileItem> getFileItems() {
+        return fileItems;
+    }
+
     public List<NameValuePair> getQueryParam(String name) {
         return queryParams
                 .stream()
@@ -50,12 +62,6 @@ public class Request {
                 .toList();
     }
 
-    // Метод для получения всех POST-параметров
-    public List<NameValuePair> getPostParams() {
-        return postParams;
-    }
-
-    // Метод для получения одного POST-параметра по имени
     public List<NameValuePair> getPostParam(String name) {
         return postParams
                 .stream()
@@ -69,34 +75,5 @@ public class Request {
 
     public String getMethod() {
         return method;
-    }
-    @Override
-    public String toString() {
-        return "Request{" +
-                "method='" + method + '\'' +
-                ", path='" + path + '\'' +
-                ", version='" + version + '\'' +
-                ", headers=" + headers +
-                ", queryParams=" + queryParams +
-                ", postParams=" + postParams +
-                '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Request request = (Request) o;
-        return Objects.equals(method, request.method) &&
-                Objects.equals(path, request.path) &&
-                Objects.equals(version, request.version) &&
-                Objects.equals(headers, request.headers) &&
-                Objects.equals(queryParams, request.queryParams) &&
-                Objects.equals(postParams, request.postParams);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(method, path, version, headers, queryParams, postParams);
     }
 }
