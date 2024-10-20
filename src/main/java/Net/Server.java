@@ -1,17 +1,16 @@
 package Net;
 
-import java.io.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.EnumSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import java.io.IOException;
 import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -32,8 +31,7 @@ public class Server {
             LOGGER.log(Level.SEVERE, "Failed to set up file handler for logger", e);
         }
     }
-    //public static final String GET = "GET";
-    //public static final String POST = "POST";
+
     private static final Set<HttpMethod> allowedMethods = EnumSet.of(HttpMethod.GET, HttpMethod.POST);
 
     private final int port;
@@ -50,6 +48,7 @@ public class Server {
             while (true) {
                 try {
                     final var socket = serverSocket.accept();
+                    LOGGER.info("Accepted connection from " + socket.getInetAddress());
                     threadPool.execute(() -> connectionHandler(socket));
                 } catch (IOException e) {
                     LOGGER.log(Level.SEVERE, "Open Socket error", e);
@@ -61,12 +60,14 @@ public class Server {
     }
 
     private void connectionHandler(Socket socket) {
-        try (final var in = new BufferedInputStream(socket.getInputStream());
+        try (socket; // Используем try-with-resources для socket
+             final var in = new BufferedInputStream(socket.getInputStream());
              final var out = new BufferedOutputStream(socket.getOutputStream())) {
 
             var request = RequestParser.parse(in);
 
             if (request == null) {
+                LOGGER.warning("Received malformed request");
                 Response.badRequestError(out);
                 return;
             }
@@ -77,6 +78,7 @@ public class Server {
                 method = HttpMethod.valueOf(methodString);
             } catch (IllegalArgumentException e) {
                 // Если метод не распознан, отправляем ошибку 405 Method Not Allowed
+                LOGGER.warning("Method not allowed: " + methodString);
                 Response.methodNotAllowed(out);
                 return;
             }
@@ -85,17 +87,22 @@ public class Server {
 
             // Обработка через динамические хендлеры
             if (allowedMethods.contains(method)) {
-                if (handlers.containsKey(method.name()) && handlers.get(method.name()).containsKey(path)) {
-                    Handler handler = handlers.get(method.name()).get(path);
+                var methodHandlers = handlers.get(method.name());
+                if (methodHandlers != null && methodHandlers.containsKey(path)) {
+                    Handler handler = methodHandlers.get(path);
                     try {
                         handler.handle(request, out);
+                        LOGGER.info("Request processed successfully");
                     } catch (Exception e) {
+                        LOGGER.log(Level.SEVERE, "Error processing request", e);
                         Response.internalServerError(out);
                     }
                 } else {
+                    LOGGER.warning("Path not found: " + path);
                     Response.notFound(out);
                 }
             } else {
+                LOGGER.warning("Method not allowed for path: " + path);
                 Response.methodNotAllowed(out);
             }
         } catch (IOException e) {
@@ -105,6 +112,7 @@ public class Server {
 
     public void addHandler(String method, String path, Handler handler) {
         handlers.computeIfAbsent(method, k -> new ConcurrentHashMap<>()).put(path, handler);
+        LOGGER.info("Added handler for " + method + " " + path);
     }
 }
 

@@ -15,19 +15,26 @@ public class Response {
         out.write(response.getBytes());
         out.flush();
     }
+
     public static void badRequestError(BufferedOutputStream out) throws IOException {
-        sendResponse(out, 400, "Bad Request", "");
+        sendResponse(out, 400, "Bad Request", "<html><body><h1>400 Bad Request</h1></body></html>");
     }
 
     public static void methodNotAllowed(BufferedOutputStream out) throws IOException {
-        sendResponse(out, 405, "Method Not Allowed", "");
+        sendResponse(out, 405, "Method Not Allowed", "<html><body><h1>405 Method Not Allowed</h1></body></html>");
     }
 
     public static void notFound(BufferedOutputStream out) throws IOException {
-        sendResponse(out, 404, "Not Found", "");
+        sendResponse(out, 404, "Not Found", "<html><body><h1>404 Not Found</h1></body></html>");
     }
 
     public static void internalServerError(BufferedOutputStream out) throws IOException {
-        sendResponse(out, 500, "Internal Server Error", "");
+        sendResponse(out, 500, "Internal Server Error", "<html><body><h1>500 Internal Server Error</h1></body></html>");
+    }
+
+    // Добавление ответа с кастомным статусом
+    public static void customError(BufferedOutputStream out, int statusCode, String statusMessage) throws IOException {
+        String body = String.format("<html><body><h1>%d %s</h1></body></html>", statusCode, statusMessage);
+        sendResponse(out, statusCode, statusMessage, body);
     }
 }

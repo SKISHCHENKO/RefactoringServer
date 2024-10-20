@@ -18,7 +18,6 @@ public class RequestParser {
     public final static String POST = "POST";
 
 
-
     private static final String contentLengthHeaderName = "Content-Length";
 
     public static Request parse(BufferedInputStream in) throws IOException {
@@ -126,4 +125,5 @@ public class RequestParser {
                 .map(String::trim)
                 .findFirst();
     }
+
 }

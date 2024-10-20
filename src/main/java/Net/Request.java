@@ -70,6 +70,7 @@ public class Request {
     public String getMethod() {
         return method;
     }
+
     @Override
     public String toString() {
         return "Request{" +
