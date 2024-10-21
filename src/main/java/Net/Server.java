@@ -1,15 +1,12 @@
 package Net;
 
-import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -45,26 +42,42 @@ public class Server {
     }
 
     private void defaultHandler(Socket socket, List<String> validPaths) {
-        try (final var in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        try (final var in = new BufferedInputStream(socket.getInputStream());
              final var out = new BufferedOutputStream(socket.getOutputStream())) {
 
+            // лимит на request line + заголовки
+            final var limit = 4096;
 
-            final var requestLine = in.readLine();
-            System.out.println("Request: " + requestLine);
+            in.mark(limit);
+            final var buffer = new byte[limit];
+            final var read = in.read(buffer);
 
-            if (requestLine == null) {
-                return;
-            }
+            // ищем request line
+            final var requestLineDelimiter = new byte[]{'\r', '\n'};
+            final var requestLineEnd = indexOf(buffer, requestLineDelimiter, 0, read);
 
-            final var parts = requestLine.split(" ");
-            if (parts.length != 3) {
+            if (requestLineEnd == -1) {
                 sendResponse(out, new Request("400 Bad Request"));
                 return;
             }
 
-            final var method = parts[0];
-            final var path = parts[1];
-            final var version = parts[2];
+            final var requestLine = new String(Arrays.copyOf(buffer, requestLineEnd)).split(" ");
+            if (requestLine.length != 3) {
+                sendResponse(out, new Request("400 Bad Request"));
+                return;
+            }
+
+            final var method = requestLine[0];
+            final var query = requestLine[1];
+            final var version = requestLine[2];
+
+            Request request = new Request(method, query,"200 OK", version);
+            final var path = request.getPath();
+
+            System.out.println("method = " + method);
+            System.out.println("query = " + query);
+            System.out.println("path = " + path);
+            System.out.println("version = " + version);
 
             // Обработка через динамические хендлеры
             if (handlers.containsKey(method) && handlers.get(method).containsKey(path)) {
@@ -75,7 +88,12 @@ public class Server {
                 }
                 // Получаем и обрабатываем запрос с допустимым методом
                 Handler handler = handlers.get(method).get(path);
-                handler.handle(new Request(method, path, "200 OK", "text/html", version), out);
+                handler.handle(request, out);
+                return;
+            }
+            if (query.length()<2) {
+                request.setContent("<html><body><h1>String query is empty!</h1></body></html>");
+                sendResponse(out, request);
                 return;
             }
 
@@ -91,29 +109,45 @@ public class Server {
                 sendResponse(out, new Request("415 Unsupported Media Type"));
                 return;
             }
+            request.setMimeType(Files.probeContentType(filePath));
+            // Обработка и вывод на html страницу параметров query
+            if (query.contains("?")) {
+                request.setContent("<html><body><h2>" + request.getQueryParams() + "</h2></body></html>");
+                sendResponse(out, request);
+                return;
+            }
 
             if (path.equals("/classic.html")) {
                 final var template = Files.readString(filePath);
                 final var content = template.replace("{time}", LocalDateTime.now().toString());
-
-                // Создаем объект Request с телом контента
-                Request request = new Request(method, path, "200 OK", mimeType, content.getBytes().length, content, version);
+                request.setContent(content);
 
                 out.write(request.createRequest().getBytes());
                 out.write(content.getBytes());
                 out.flush();
             } else {
                 final var contentLength = (int) Files.size(filePath);
-
-                // Создаем объект Request без тела контента, т.к. будем копировать файл напрямую
-                Request request = new Request(method, path, "200 OK", mimeType, contentLength, version);
-
+                request.setContentLength(contentLength);
                 out.write(request.createRequest().getBytes());
                 Files.copy(filePath, out);
                 out.flush();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            // Ловим любые ошибки ввода-вывода и отправляем ответ с кодом 500
+            try (final var out = new BufferedOutputStream(socket.getOutputStream())) {
+                System.err.println("Internal Server Error: " + e.getMessage());
+                sendResponse(out, new Request("500 Internal Server Error"));
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        } catch (Exception e) {
+            // Ловим все остальные ошибки и отправляем ответ с кодом 500
+            try (final var out = new BufferedOutputStream(socket.getOutputStream())) {
+                System.err.println("Unexpected Error: " + e.getMessage());
+                sendResponse(out, new Request("500 Internal Server Error"));
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
         }
     }
 
@@ -121,26 +155,33 @@ public class Server {
         // В случае ошибки добавляем сообщение об ошибке как HTML-страницу
         if (request.getHeader().startsWith("4") || request.getHeader().startsWith("5")) {
             String errorMessage = "<html><body><h1>" + request.getHeader() + "</h1></body></html>";
-            byte[] errorContent = errorMessage.getBytes();
 
-            String errorResponse = request.getVersion() + " " + request.getHeader() + "\r\n" +
-                    "Content-Type: text/html" + "\r\n" +
-                    "Content-Length: " + errorContent.length + "\r\n" +
-                    "Connection: close" + "\r\n" +
-                    "\r\n";
-            out.write(errorResponse.getBytes());
-            out.write(errorContent);
+            out.write(request.badRequest().getBytes());
+            out.write(errorMessage.getBytes());
         }
         else{
             String response = request.createRequest();
             out.write(response.getBytes());
-            if (request.getContentBody() != null) {
-                out.write(request.getContentBody().getBytes());
+            if (request.getContent() != null) {
+                out.write(request.getContent().getBytes());
             }
         }
         out.flush();
     }
     public void addHandler(String method, String path, Handler handler) {
         handlers.computeIfAbsent(method, k -> new ConcurrentHashMap<>()).put(path, handler);
+    }
+
+    private static int indexOf(byte[] array, byte[] target, int start, int max) {
+        outer:
+        for (int i = start; i < max - target.length + 1; i++) {
+            for (int j = 0; j < target.length; j++) {
+                if (array[i + j] != target[j]) {
+                    continue outer;
+                }
+            }
+            return i;
+        }
+        return -1;
     }
 }
