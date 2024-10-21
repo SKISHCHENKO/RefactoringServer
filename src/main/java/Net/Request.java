@@ -1,63 +1,33 @@
 package Net;
 
 import org.apache.hc.core5.http.NameValuePair;
-import org.apache.hc.core5.net.URLEncodedUtils;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 public class Request {
-    final static String GET = "GET";
-    final static String POST = "POST";
-    final List<String> allowedMethods = List.of(GET, POST);
-    List<NameValuePair> params = null;
+    private final List<NameValuePair> queryParams;  // Параметры GET-запроса
+    private final List<NameValuePair> postParams;   // Параметры POST-запроса
 
-    private String query;
+    private final String method;
+    private final String path;
+    private final byte[] body;
+    private final String version;
+    private final List<String> headers;
 
-    private String method;
-    private String path;
-    private String header;
-    private String mimeType;
-    private String content;
-    private String version = "HTTP/1.1 ";
-    private int contentLength = 0;
-
-    public Request(String method, String query, String header, String version) {
+    public Request(String method, String path, String version, List<String> headers, byte[] body, List<NameValuePair> queryParams, List<NameValuePair> postParams) {
         this.method = method;
-        this.query = query;
-        this.mimeType = "text/html";
-        URI uri = null;
-        try {
-            uri = new URI(this.query);
-        } catch (URISyntaxException e) {
-            System.out.println("Ошибка URI" + e.getMessage());
-        }
-        // Получение пути
-        assert uri != null;
-        this.path = uri.getPath();
-        this.header = header;
+        this.path = path;
+        this.headers = headers;
         this.version = version;
-    }
-
-    public Request(String header) {
-        this.header = header;
-        this.mimeType = "text/html";
-        this.content = "";
-        this.version = "HTTP/1.1";
-    }
-
-    public String getQuery() {
-        return query;
+        this.body = body;
+        this.queryParams = queryParams;
+        this.postParams = postParams;
     }
 
     public String getPath() {
         return path;
-    }
-
-    public String getHeader() {
-        return header;
     }
 
 
@@ -65,82 +35,69 @@ public class Request {
         return version;
     }
 
-    public void setMimeType(String mimeType) {
-        this.mimeType = mimeType;
+    public byte[] getBody() {
+        return body;
     }
 
-    public void setContent(String content) {
-        this.content = content;
+    public List<NameValuePair> getQueryParams() {
+        return queryParams;
     }
 
-    public String getContent() {
-        return content;
+    public List<NameValuePair> getQueryParam(String name) {
+        return queryParams
+                .stream()
+                .filter(x -> Objects.equals(x.getName(), name))
+                .toList();
     }
 
-    public void setContentLength(int contentLength) {
-        this.contentLength = contentLength;
+    // Метод для получения всех POST-параметров
+    public List<NameValuePair> getPostParams() {
+        return postParams;
     }
 
-    public String createRequest() {
-        return this.version + " " + this.header + "\r\n" +
-                "Content-Type: " + this.mimeType + "\r\n" +
-                "Content-Length: " + (contentLength == 0 ? content.getBytes().length : contentLength) + "\r\n" +
-                "Connection: close" + "\r\n" +
-                "\r\n";
+    // Метод для получения одного POST-параметра по имени
+    public List<NameValuePair> getPostParam(String name) {
+        return postParams
+                .stream()
+                .filter(x -> Objects.equals(x.getName(), name))
+                .toList();
     }
 
-    public String badRequest() {
-        String errorMessage = "<html><body><h1>" + this.getHeader() + "</h1></body></html>";
-        byte[] errorContent = errorMessage.getBytes();
-        String errorResponse = this.getVersion() + " " + this.getHeader() + "\r\n" +
-                "Content-Type: text/html" + "\r\n" +
-                "Content-Length: " + errorContent.length + "\r\n" +
-                "Connection: close" + "\r\n" +
-                "\r\n";
-        return errorResponse;
+    public Optional<String> getHeader(String name) {
+        return RequestParser.extractHeader(headers, name);
     }
 
-    public String getQueryParams() {
-        StringBuilder str = new StringBuilder();
-        try {
-            // Парсинг строки URI
-            URI uri = new URI(this.query);
-            // Получение пути
-            String path = uri.getPath();
-            System.out.println("Path: " + path);
-            // Извлечение параметров из строки запроса
-            params = URLEncodedUtils.parse(uri, StandardCharsets.UTF_8);
-            str.append("String query :").append("<br>"); // <br> - перевод строки в html
-            for (NameValuePair param : params) {
-                System.out.println(param.getName() + " = " + param.getValue());
-                str.append(param.getName() + " = " + param.getValue()).append("<br>");
-            }
-
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
-        }
-        return str.toString();
+    public String getMethod() {
+        return method;
     }
 
-    public String getQueryParam(String name) {
-        try {
-        URI uri = new URI(this.query);
-        // Получение пути
-        String path = uri.getPath();
-        System.out.println("Path: " + path);
-        // Извлечение параметров из строки запроса
-        params = URLEncodedUtils.parse(uri, StandardCharsets.UTF_8);
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
-        }
-        if (params == null || params.isEmpty()) {
-            return "String Query is Empty!";
-        }
-        for (NameValuePair param : params) {
-            if (param.getName().equals(name)) {
-                return param.getName() + " = " + param.getValue();
-            }
-        }
-        return "String Query not contain : " + name;
+    @Override
+    public String toString() {
+        return "Request{" +
+                "method='" + method + '\'' +
+                ", path='" + path + '\'' +
+                ", version='" + version + '\'' +
+                ", headers=" + headers +
+                ", queryParams=" + queryParams +
+                ", postParams=" + postParams +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Request request = (Request) o;
+        return Objects.equals(method, request.method) &&
+                Objects.equals(path, request.path) &&
+                Objects.equals(version, request.version) &&
+                Objects.equals(headers, request.headers) &&
+                Objects.equals(queryParams, request.queryParams) &&
+                Objects.equals(postParams, request.postParams);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(method, path, version, headers, queryParams, postParams);
     }
 }
