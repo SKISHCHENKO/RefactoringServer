@@ -1,0 +1,38 @@
+окт. 21, 2024 10:07:18 AM Net.Server addHandler
+INFO: Added handler for GET /messages
+окт. 21, 2024 10:07:18 AM Net.Server addHandler
+INFO: Added handler for POST /messages
+окт. 21, 2024 10:07:18 AM Net.Server addHandler
+INFO: Added handler for GET /error
+окт. 21, 2024 10:09:16 AM Net.Server addHandler
+INFO: Added handler for GET /messages
+окт. 21, 2024 10:09:16 AM Net.Server addHandler
+INFO: Added handler for POST /messages
+окт. 21, 2024 10:09:16 AM Net.Server addHandler
+INFO: Added handler for GET /error
+окт. 21, 2024 10:09:22 AM Net.Server listen
+INFO: Accepted connection from /0:0:0:0:0:0:0:1
+окт. 21, 2024 10:09:22 AM Net.Server listen
+INFO: Accepted connection from /0:0:0:0:0:0:0:1
+окт. 21, 2024 10:09:22 AM Net.Server connectionHandler
+WARNING: Path not found: /error/
+окт. 21, 2024 10:09:22 AM Net.Server connectionHandler
+WARNING: Path not found: /favicon.ico
+окт. 21, 2024 10:09:31 AM Net.Server listen
+INFO: Accepted connection from /0:0:0:0:0:0:0:1
+окт. 21, 2024 10:09:31 AM Net.Server listen
+INFO: Accepted connection from /0:0:0:0:0:0:0:1
+окт. 21, 2024 10:09:31 AM Net.Server connectionHandler
+INFO: Request processed successfully
+окт. 21, 2024 10:09:43 AM Net.Server connectionHandler
+INFO: Request processed successfully
+окт. 21, 2024 10:09:43 AM Net.Server listen
+INFO: Accepted connection from /0:0:0:0:0:0:0:1
+окт. 21, 2024 10:09:43 AM Net.Server listen
+INFO: Accepted connection from /0:0:0:0:0:0:0:1
+окт. 21, 2024 10:09:47 AM Net.Server connectionHandler
+WARNING: Path not found: /error/
+окт. 21, 2024 10:09:55 AM Net.Server connectionHandler
+WARNING: Path not found: /messages/
+окт. 21, 2024 10:09:55 AM Net.Server listen
+INFO: Accepted connection from /0:0:0:0:0:0:0:1
