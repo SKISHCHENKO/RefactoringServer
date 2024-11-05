@@ -1,6 +1,4 @@
 ## Architecture of the Application ##
-This web server application is designed with a simple, modular, and multithreaded architecture. Below is a breakdown of the main 
-componentsand how they interact with each other:  
 
 ### 1. Main Class (Main) ###  
 - Responsibility: The entry point of the application where the server instance is created, routes are defined, and the server is started.  
@@ -83,12 +81,4 @@ Example:
 - Business Logic Execution: The Handler processes the request (e.g., retrieves data, applies business logic).  
 - Response Creation: A response is created using the Response class, formatted as an HTTP response.  
 - Client Receives Response: The server sends the response back to the client and closes the connection.   
-
-### Potential Improvements: ###  
-
-- Route Parameter Support: Add support for dynamic route parameters (e.g., /messages/{id}).  
-- Middleware: Add support for middleware (e.g., authentication, logging) that can be applied globally or on specific routes.  
-- HTTP/2 Support: Extend the server to handle HTTP/2 for better performance (multiplexing, header compression).  
-- Error Handling: Implement more robust error handling with detailed logging for different HTTP status codes.  
-- Load Balancing: Add the capability to integrate with load balancers for scaling in production environments.  
-- This modular architecture allows for flexibility, scalability, and easy extension of the server with additional features as needed.  
+ 
